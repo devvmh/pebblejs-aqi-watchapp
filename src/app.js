@@ -34,7 +34,7 @@ var AQICN = {
     main = new UI.Card({
       title: '   Current AQI',
       subtitle: '          ' + AQICN.aqi.aqit,
-      body: AQICN.aqi.cityname + "\n" + AQICN.aqi.date + "\nTemp: " + AQICN.aqi.temp + "\nToday: "  + AQICN.aqi.temptoday.replace(/\&ndash;/g, 'to').replace(/ ?\&deg;?/g, ''),
+      body: AQICN.aqi.cityname + "\n" + AQICN.aqi.date + "\nTemp: " + AQICN.aqi.temp + "C\nToday: "  + AQICN.aqi.temptoday.replace(/\&ndash;/g, 'to').replace(/ ?\&deg;?/g, ''),
       backgroundColor: AQICN.colors[1],
       bodyColor: AQICN.colors[2],
       scrollable: true,
