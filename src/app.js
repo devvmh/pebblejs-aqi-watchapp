@@ -7,12 +7,14 @@
 var UI = require('ui');
 var ajax = require('ajax');
 
+var MINUTE = 60 * 1000;
+
 var main = new UI.Card({
-  title: 'AQICN',
-  icon: 'images/menu_icon.png',
-  subtitle: '---',
-  body: 'Press select to download data.',
-  bodyColor: '#9a0036' // Hex colors
+  title: '   Current AQI',
+  subtitle: '           ---',
+  body: 'Loading...',
+  bodyColor: 'white',
+  scrollable: true,
 });
 
 var AQICN = {
@@ -22,22 +24,45 @@ var AQICN = {
   n: 0,
   k: '',
   success: function(data) {
-    this.n += 1;
+    AQICN.n += 1;
     var json = data.replace(/^.*{"cityname"/, '{"cityname"');
     json = json.replace(/\)\);$/, ''); //remove )); from end
     json = json.replace(/<[^>]*>/g, ''); //remove html tags
-    this.aqi = JSON.parse(json);
-    main.subtitle(this.aqi.cityname + ' ' + this.aqi.aqit);
-    main.body(this.aqi.attribution);
-    console.log(JSON.stringify(this.aqi, null, 1));
+    AQICN.aqi = JSON.parse(json);
+    AQICN.colors = AQICN.aqi.style.match(/background-color: (#.{6});color:(#.{6});.*/);
+    main.hide();
+    main = new UI.Card({
+      title: '   Current AQI',
+      subtitle: '          ' + AQICN.aqi.aqit,
+      body: AQICN.aqi.cityname + "\n" + AQICN.aqi.date + "\nTemp: " + AQICN.aqi.temp + "\nToday: "  + AQICN.aqi.temptoday.replace(/\&ndash;/g, 'to').replace(/ ?\&deg;?/g, ''),
+      backgroundColor: AQICN.colors[1],
+      bodyColor: AQICN.colors[2],
+      scrollable: true,
+    });
+    main.show();
+    console.log(JSON.stringify(AQICN.aqi, null, 2));
   },
   error: function(err) {
+    main.body('Failed to load data from server.');
     console.log('Ajax failed: ' + err);
   },
   getFeed: function() {
-    var url = 'http://feed.aqicn.org/feed/' + this.cityname + '/' + (this.lang || '') + '/feed.v1.js?n=' + this.n + this.k;
-    ajax({url: url}, this.success, this.error);
-  }//getFeed
+    var url = 'http://feed.aqicn.org/feed/' + AQICN.cityname + '/' + (AQICN.lang || '') + '/feed.v1.js?n=' + AQICN.n + AQICN.k;
+    ajax({url: url}, AQICN.success, AQICN.error);
+    setTimeout(AQICN.getFeed, 5 * MINUTE);
+  },//getFeed
+  showAttribution: function() {
+    if (AQICN.aqi.attribution) {
+      var attribution = new UI.Card({
+        title: 'Attribution',
+        body: AQICN.aqi.attribution,
+        backgroundColor: AQICN.colors[1],
+        bodyColor: AQICN.colors[2],
+        scrollable: true,
+      });
+      attribution.show();
+    }
+  },//showAttribution
 };//AQICN
 
 /*
@@ -46,5 +71,6 @@ var AQICN = {
 
 main.show();
 main.on('click', 'select', function(e) {
-  AQICN.getFeed();
+  AQICN.showAttribution();
 });
+AQICN.getFeed();
