@@ -25,7 +25,7 @@ var MainView = {
 
 var Aqicn = {
   aqi: {},
-  cityname: 'toronto',  
+  cityname: 'beijing',  
   lang: null,
   n: 0,
   k: '',
