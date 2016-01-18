@@ -11,6 +11,20 @@ var MINUTE = 60 * 1000;
 
 var MainView = {
   card: null,
+  changeCity: function(add) {
+    var cities = ['beijing', 'hongkong', 'shanghai', 'suzhou', 'xian'];
+    var cityIndex = cities.indexOf(Aqicn.cityname);
+    if (cityIndex === -1) {
+      Aqicn.cityname = 'beijing';
+      Aqicn.refresh();
+      return;
+    }
+    cityIndex += add;
+    if (cityIndex >= cities.length) cityIndex = 0;
+    if (cityIndex < 0) cityIndex = cities.length;
+    Aqicn.cityname = cities[cityIndex];
+    Aqicn.refresh();
+  },
   renderCard: function(cardconfig) {
     if (MainView.card !== null) {
       MainView.card.hide();
@@ -20,7 +34,13 @@ var MainView = {
     MainView.card.on('click', 'select', function(e) {
       Aqicn.showAttribution();
     });
-  },//setupMainView
+    MainView.card.on('click', 'up', function(e) {
+      MainView.changeCity(-1);
+    });
+    MainView.card.on('click', 'down', function(e) {
+      MainView.changeCity(1);
+    });
+  },//renderCard
 };
 
 var Aqicn = {
@@ -77,7 +97,6 @@ var Aqicn = {
       titleColor: Aqicn.fgColor(),
       subtitleColor: Aqicn.fgColor(),
       bodyColor: Aqicn.fgColor(),
-      scrollable: true,
     });
   },
   showError: function(err) {
@@ -90,15 +109,15 @@ var Aqicn = {
     });
     console.log('Ajax failed: ' + err);
   },
-  getFeed: function() {
+  refresh: function() {
     var url = 'http://feed.aqicn.org/feed/' + Aqicn.cityname + '/' + (Aqicn.lang || '') + '/feed.v1.js?n=' + Aqicn.n + Aqicn.k;
     ajax({url: url}, Aqicn.displayData, Aqicn.showError);
-    setTimeout(Aqicn.getFeed, 5 * MINUTE);
-  },//getFeed
+    setTimeout(Aqicn.refresh, 5 * MINUTE);
+  },//refresh
   showAttribution: function() {
     if (Aqicn.aqi.attribution) {
       var attribution = new UI.Card({
-        title: 'Attribution',
+        title: '  Attribution',
         body: Aqicn.aqi.attribution,
         backgroundColor: Aqicn.bgColor(),
         bodyColor: Aqicn.fgColor(),
@@ -121,4 +140,4 @@ MainView.renderCard({
   bodyColor: 'white',
   scrollable: true,
 });
-Aqicn.getFeed();
+Aqicn.refresh();
