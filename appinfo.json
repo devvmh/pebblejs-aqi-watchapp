@@ -36,11 +36,10 @@
     "shortName": "AQI",
     "targetPlatforms": [
         "aplite",
-        "basalt",
-        "chalk"
+        "basalt"
     ],
     "uuid": "2702e1ce-2bd0-4888-8505-62527060ac06",
-    "versionCode": 2,
+    "versionCode": 1,
     "versionLabel": "1.2",
     "watchapp": {
         "hiddenApp": false,

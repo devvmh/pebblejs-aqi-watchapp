@@ -1,7 +1,7 @@
 /**
- * AQI pebble app
- * Author: Devin Howard
- * All credits to http://aqicn.org!
+ * AQI Pebble App
+ * Pebble App Author: Devin Howard
+ * All other credit to http://aqicn.org!
  */
 
 var UI = require('ui');
@@ -12,7 +12,7 @@ var MINUTE = 60 * 1000;
 var MainView = {
   card: null,
   renderCard: function(cardconfig) {
-    if MainView.card !== null) {
+    if (MainView.card !== null) {
       MainView.card.hide();
     }
     MainView.card = new UI.Card(cardconfig);
@@ -25,17 +25,40 @@ var MainView = {
 
 var Aqicn = {
   aqi: {},
-  cityname: 'beijing',  
+  cityname: 'toronto',  
   lang: null,
   n: 0,
   k: '',
-  createBody: function() {
+  fgColor: function() {
+    if (Aqicn.colors && Aqicn.colors.length > 2) {
+      return Aqicn.colors[2];
+    } else {
+      return 'black';
+    }
+  },
+  bgColor: function() {
+    if (Aqicn.colors && Aqicn.colors.length > 2) {
+      return Aqicn.colors[1];
+    } else {
+      return 'white';
+    }
+  },
+  temptodayFormatted: function() {
+    if (Aqicn.aqi.temptoday === null) return null;
+    
+    var output = Aqicn.aqi.temptoday;
+    output = output.replace(/\&ndash;/g, 'to');
+    output = output.replace(/ ?\&deg;?/g, '');
+    return output;
+  },
+  createBody: function() {    
     var body = '';
     body += Aqicn.aqi.cityname;
     body += "\n" + Aqicn.aqi.date;
-    body += "\nTemp: " + Aqicn.aqi.temp; + "C";
-    body += "\nToday: " + Aqicn.aqi.temptoday.replace(/\&ndash;/g, 'to')
-                                             .replace(/ ?\&deg;?/g, '');
+    body += "\nTemp: " + Aqicn.aqi.temp + ' C';
+    if (Aqicn.aqi.temptoday !== null) {
+      body += "\nToday: " + Aqicn.temptodayFormatted();
+    }
     return body;
   },
   displayData: function(data) {
@@ -45,19 +68,26 @@ var Aqicn = {
     json = json.replace(/<[^>]*>/g, ''); //remove html tags
     Aqicn.aqi = JSON.parse(json);
     Aqicn.colors = Aqicn.aqi.style.match(/background-color: (#.{6});color:(#.{6});.*/);
+    console.log(JSON.stringify(Aqicn.aqi, null, 2));
     MainView.renderCard({
       title: '   Current AQI',
       subtitle: '          ' + Aqicn.aqi.aqit,
       body: Aqicn.createBody(),
-      backgroundColor: Aqicn.colors[1],
-      titleColor: Aqicn.colors[2],
-      bodyColor: Aqicn.colors[2],
+      backgroundColor: Aqicn.bgColor(),
+      titleColor: Aqicn.fgColor(),
+      subtitleColor: Aqicn.fgColor(),
+      bodyColor: Aqicn.fgColor(),
       scrollable: true,
     });
-    console.log(JSON.stringify(Aqicn.aqi, null, 2));
   },
   showError: function(err) {
-    main.body('Failed to load data from server.');
+    MainView.renderCard({
+      title: '   Current AQI',
+      subtitle: '           ---',
+      body: 'Failed to load data from server.',
+      bodyColor: 'white',
+      scrollable: true,
+    });
     console.log('Ajax failed: ' + err);
   },
   getFeed: function() {
@@ -70,8 +100,9 @@ var Aqicn = {
       var attribution = new UI.Card({
         title: 'Attribution',
         body: Aqicn.aqi.attribution,
-        backgroundColor: Aqicn.colors[1],
-        bodyColor: Aqicn.colors[2],
+        backgroundColor: Aqicn.bgColor(),
+        bodyColor: Aqicn.fgColor(),
+        titleColor: Aqicn.fgColor(),
         scrollable: true,
       });
       attribution.show();
