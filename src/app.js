@@ -9,19 +9,23 @@ var ajax = require('ajax');
 
 var MINUTE = 60 * 1000;
 
+// forward declarations... bleh.
+var MainView = {},
+    Aqicn = {};
+
 var MainView = {
   card: null,
   changeCity: function(add) {
     var cities = ['beijing', 'hongkong', 'shanghai', 'suzhou', 'xian'];
     var cityIndex = cities.indexOf(Aqicn.cityname);
     if (cityIndex === -1) {
-      Aqicn.cityname = 'beijing';
+      Aqicn.cityname = cities[0];
       Aqicn.refresh();
       return;
     }
     cityIndex += add;
     if (cityIndex >= cities.length) cityIndex = 0;
-    if (cityIndex < 0) cityIndex = cities.length;
+    if (cityIndex < 0) cityIndex = cities.length - 1;
     Aqicn.cityname = cities[cityIndex];
     Aqicn.refresh();
   },
@@ -128,6 +132,32 @@ var Aqicn = {
     }
   },//showAttribution
 };//Aqicn
+
+/*
+ * SETTINGS
+ */
+
+Pebble.addEventListener('showConfiguration', function(e) {
+  Pebble.openURL('https://www.devinhoward.ca/pebblejs/aqicn/config-page.html');
+});
+
+Pebble.addEventListener('webviewclosed', function(e) {
+  // Decode and parse config data as JSON
+  var config_data = JSON.parse(decodeURIComponent(e.response));
+  console.log('Config window returned: ', JSON.stringify(config_data));
+
+  // Prepare AppMessage payload
+  var dict = {
+    'CITY_ARRAY': config_data.cityArray.split(","),
+  };
+
+  // Send settings to Pebble watchapp
+  Pebble.sendAppMessage(dict, function(){
+    console.log('Sent config data to Pebble');  
+  }, function() {
+    console.log('Failed to send config data!');
+  });
+});
 
 /*
  * MAIN

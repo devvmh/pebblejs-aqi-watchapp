@@ -1,7 +1,6 @@
 {
     "appKeys": {},
     "capabilities": [
-        "location",
         "configurable"
     ],
     "companyName": "devin@callysto.com",
