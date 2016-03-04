@@ -70,7 +70,12 @@ var Aqicn = {
     var json = data.replace(/^.*{"cityname"/, '{"cityname"');
     json = json.replace(/\)\);$/, ''); //remove )); from end
     json = json.replace(/<[^>]*>/g, ''); //remove html tags
-    Aqicn.aqi = JSON.parse(json);
+    try {
+      Aqicn.aqi = JSON.parse(json);
+    } catch (err) {
+      Aqicn.showError(err);
+      return;
+    }
     Aqicn.colors = Aqicn.aqi.style.match(/background-color: (#.{6});color:(#.{6});.*/);
     console.log(JSON.stringify(Aqicn.aqi, null, 2));
     Aqicn.updateSuccessListeners();
@@ -162,8 +167,8 @@ var ConfigurationModule = {
     'beijing',
     'hongkong',
     'shanghai',
-    'suzhou',
-    'xian'
+    'toronto',
+    'beijing/dongchengtiantan'
   ],
   ensureCityArrayExists: function() {
     if (! Settings.option('cityArray')) {
