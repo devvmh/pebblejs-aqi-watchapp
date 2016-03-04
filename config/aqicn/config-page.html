@@ -1,0 +1,72 @@
+<!DOCTYPE !HTML>
+<head>
+<link rel="stylesheet" href="slate.min.css">
+</head>
+<body>
+
+<div class="item-container">
+  <div class="item-container-header">Your Cities</div>
+  <div class="item-container-content">
+    <div class="item-draggable-list item-dynamic-list" id="cities-container">
+    </div>
+  </div>
+</div>
+
+<div class="item-container">
+  <div class="button-container">
+    <button id="submit-button" class="item-button">SAVE</button>
+  </div>
+</div>
+
+<script type="text/javascript" src="slate.min.js"></script>
+<script type="text/javascript">
+  //Magical incantation for testing with Cloud Pebble
+  function getQueryParam(variable, defaultValue) {
+    // Find all URL parameters
+    var query = location.search.substring(1);
+    var vars = query.split('&');
+    for (var i = 0; i < vars.length; i++) {
+      var pair = vars[i].split('=');
+  
+      // If the query variable parameter is found, decode it to use and return it for use
+      if (pair[0] === variable) {
+        return decodeURIComponent(pair[1]);
+      }
+    }
+    return defaultValue || false;
+  }//getQueryParam
+
+  function prepopulateDefaultValues() {
+    var prepopulate = JSON.parse(getQueryParam('cityArray', '[]'));
+    prepopulate.forEach(function(elt, idx) {
+      $('#cities-container').append('<div class="item">' + elt + '<div class="delete-item"></div></div>');
+    });
+    $('#cities-container .delete-item').click(function() {
+      $(this).parent().remove();
+    });
+  }//prepopulateDefaultValues
+
+  /*
+   * MAIN
+  */
+
+  prepopulateDefaultValues();
+
+  var submitButton = document.getElementById('submit-button');
+  submitButton.addEventListener('click', function() {
+    var cityArray = [];
+    $('#cities-container .item:not(.add-item)').map(function(idx, elt) {
+      cityArray.push($(elt).text())
+    });
+
+    var config = {
+      'cityArray': cityArray,
+    };
+    
+   // Take return_to if passed by CloudPebble; otherwise return phone return url
+   var return_to = getQueryParam('return_to', 'pebblejs://close#');
+   document.location = return_to + encodeURIComponent(JSON.stringify(config));
+ });
+</script>
+</body>
+</html>
