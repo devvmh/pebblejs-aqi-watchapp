@@ -6,71 +6,33 @@
 
 var UI = require('ui');
 var ajax = require('ajax');
+var Settings = require('settings');
 
 var MINUTE = 60 * 1000;
 
-var CITY_ARRAY_JSON = 'cityArrayJSON';
-var DEFAULT_CITY_ARRAY = [
-  'beijing',
-  'hongkong',
-  'shanghai',
-  'suzhou',
-  'xian'
-];
-
-// forward declarations... bleh.
-var MainView = {},
-    Aqicn = {};
-
-var MainView = {
-  card: null,
-  cities: function() {
-    var cityArray = localStorage.getItem(CITY_ARRAY_JSON);
-    if (!cityArray) {
-      localStorage.setItem(CITY_ARRAY_JSON, DEFAULT_CITY_ARRAY);
-      return DEFAULT_CITY_ARRAY;
-    } else {
-      return JSON.parse(cityArray);
-    }
-  },
-  changeCity: function(add) {
-    var cities = this.cities();
-    var cityIndex = cities.indexOf(Aqicn.cityname);
-    if (cityIndex === -1) {
-      Aqicn.cityname = cities[0];
-      Aqicn.refresh();
-      return;
-    }
-    cityIndex += add;
-    if (cityIndex >= cities.length) cityIndex = 0;
-    if (cityIndex < 0) cityIndex = cities.length - 1;
-    Aqicn.cityname = cities[cityIndex];
-    Aqicn.refresh();
-  },
-  renderCard: function(cardconfig) {
-    if (MainView.card !== null) {
-      MainView.card.hide();
-    }
-    MainView.card = new UI.Card(cardconfig);
-    MainView.card.show();
-    MainView.card.on('click', 'select', function(e) {
-      Aqicn.showAttribution();
-    });
-    MainView.card.on('click', 'up', function(e) {
-      MainView.changeCity(-1);
-    });
-    MainView.card.on('click', 'down', function(e) {
-      MainView.changeCity(1);
-    });
-  },//renderCard
-};
-
 var Aqicn = {
   aqi: {},
-  cityname: 'beijing',  
   lang: null,
   n: 0,
   k: '',
+  successListeners: [],
+  addSuccessListener: function(listener) {
+    Aqicn.successListeners.push(listener);
+  },
+  updateSuccessListeners: function() {
+    Aqicn.successListeners.forEach(function(listener, index) {
+      listener(Aqicn);
+    });
+  },
+  errorListeners: [],
+  addErrorListener: function(listener) {
+    Aqicn.errorListeners.push(listener);
+  },
+  updateErrorListeners: function() {
+    Aqicn.errorListeners.forEach(function(listener, index) {
+      listener(Aqicn);
+    });
+  },
   fgColor: function() {
     if (Aqicn.colors && Aqicn.colors.length > 2) {
       return Aqicn.colors[2];
@@ -111,28 +73,15 @@ var Aqicn = {
     Aqicn.aqi = JSON.parse(json);
     Aqicn.colors = Aqicn.aqi.style.match(/background-color: (#.{6});color:(#.{6});.*/);
     console.log(JSON.stringify(Aqicn.aqi, null, 2));
-    MainView.renderCard({
-      title: '   Current AQI',
-      subtitle: '          ' + Aqicn.aqi.aqit,
-      body: Aqicn.createBody(),
-      backgroundColor: Aqicn.bgColor(),
-      titleColor: Aqicn.fgColor(),
-      subtitleColor: Aqicn.fgColor(),
-      bodyColor: Aqicn.fgColor(),
-    });
+    Aqicn.updateSuccessListeners();
   },
   showError: function(err) {
-    MainView.renderCard({
-      title: '   Current AQI',
-      subtitle: '           ---',
-      body: 'Failed to load data from server.',
-      bodyColor: 'white',
-      scrollable: true,
-    });
+    Aqicn.updateErrorListeners();
     console.log('Ajax failed: ' + err);
   },
   refresh: function() {
-    var url = 'http://feed.aqicn.org/feed/' + Aqicn.cityname + '/' + (Aqicn.lang || '') + '/feed.v1.js?n=' + Aqicn.n + Aqicn.k;
+    var city = Settings.option('cityName');
+    var url = 'http://feed.aqicn.org/feed/' + city + '/' + (Aqicn.lang || '') + '/feed.v1.js?n=' + Aqicn.n + Aqicn.k;
     ajax({url: url}, Aqicn.displayData, Aqicn.showError);
     setTimeout(Aqicn.refresh, 5 * MINUTE);
   },//refresh
@@ -151,36 +100,104 @@ var Aqicn = {
   },//showAttribution
 };//Aqicn
 
+var MainView = {
+  card: null,
+  changeCity: function(add) {
+    var cities = Settings.option('cityArray');
+    var cityIndex = cities.indexOf(Settings.option('cityName'));
+    if (cityIndex === -1) {
+      Settings.option('cityName', cities[0]);
+      Aqicn.refresh();
+      return;
+    }
+    cityIndex += add;
+    if (cityIndex >= cities.length) cityIndex = 0;
+    if (cityIndex < 0) cityIndex = cities.length - 1;
+    Settings.option('cityName', cities[cityIndex]);
+    Aqicn.refresh();
+  },
+  aqicnSuccessListener: function(aqicn) {
+    MainView.renderCard({
+      title: '   Current AQI',
+      subtitle: '          ' + aqicn.aqi.aqit,
+      body: aqicn.createBody(),
+      backgroundColor: aqicn.bgColor(),
+      titleColor: aqicn.fgColor(),
+      subtitleColor: aqicn.fgColor(),
+      bodyColor: aqicn.fgColor(),
+    });
+  },
+  aqicnErrorListener: function(aqicn) {
+    MainView.renderCard({
+      title: '   Current AQI',
+      subtitle: '           ---',
+      body: 'Failed to load data from server.',
+      bodyColor: 'white',
+      scrollable: true,
+    });
+  },
+  renderCard: function(cardconfig) {
+    if (MainView.card !== null) {
+      MainView.card.hide();
+    }
+    MainView.card = new UI.Card(cardconfig);
+    MainView.card.show();
+    MainView.card.on('click', 'select', function(e) {
+      Aqicn.showAttribution();
+    });
+    MainView.card.on('click', 'up', function(e) {
+      MainView.changeCity(-1);
+    });
+    MainView.card.on('click', 'down', function(e) {
+      MainView.changeCity(1);
+    });
+  },//renderCard
+};
+
 /*
  * SETTINGS
  */
-
-Pebble.addEventListener('showConfiguration', function(e) {
-  var cityArray = localStorage.getItem(CITY_ARRAY_JSON);
-  if (!cityArray) {
-    cityArray = JSON.stringify(DEFAULT_CITY_ARRAY);
+var ConfigurationModule = {
+  DEFAULT_CITY_ARRAY: [
+    'beijing',
+    'hongkong',
+    'shanghai',
+    'suzhou',
+    'xian'
+  ],
+  ensureCityArrayExists: function() {
+    if (! Settings.option('cityArray')) {
+      Settings.option('cityArray', this.DEFAULT_CITY_ARRAY);
+      Settings.option('cityName', this.DEFAULT_CITY_ARRAY[0]);
+    }
+  },
+  setupConfigCallbacks: function() {
+    var cityArray = Settings.option('cityArray') || ;
+    var baseUrl = 'https://www.devinhoward.ca/pebblejs/aqicn/config-page.html';
+    var url = baseUrl + '?cityArray=' + encodeURIComponent(JSON.stringify(cityArray));
+    Settings.config(
+      { url: url },
+      function(e) {
+        // console.log('opening configurable');
+      },
+      function(e) {
+        // console.log('closed configurable');
+        var cities = Settings.option('cityArray');
+        if (cities.indexOf(Settings.option('cityName')) === -1) {
+          Settings.option('cityName', cities[0]);
+        }
+        ConfigurationModule.setupConfigCallbacks(); //with new values
+      }
+    );
   }
-  cityArray = JSON.stringify(['beijing', 'toronto']);
-  Pebble.openURL('https://www.devinhoward.ca/pebblejs/aqicn/config-page.html?cityArray=' + encodeURIComponent(cityArray));
-});
-
-Pebble.addEventListener('webviewclosed', function(e) {
-  // Decode and parse config data as JSON
-  var config_data = JSON.parse(decodeURIComponent(e.response));
-  console.log('Config window returned: ', JSON.stringify(config_data));
-
-  // Send settings to Pebble watchapp
-  Pebble.sendAppMessage(config_data, function(){
-    console.log('Sent config data to Pebble');  
-  }, function() {
-    console.log('Failed to send config data!');
-  });
-});
+};
 
 /*
  * MAIN
  */
 
+ConfigurationModule.ensureCityArrayExists();
+ConfigurationModule.setupConfigCallbacks();
 MainView.renderCard({
   title: '   Current AQI',
   subtitle: '           ---',
@@ -188,4 +205,6 @@ MainView.renderCard({
   bodyColor: 'white',
   scrollable: true,
 });
+Aqicn.addSuccessListener(MainView.aqicnSuccessListener);
+Aqicn.addErrorListener(MainView.aqicnErrorListener);
 Aqicn.refresh();
