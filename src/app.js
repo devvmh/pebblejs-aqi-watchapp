@@ -172,7 +172,7 @@ var ConfigurationModule = {
     }
   },
   setupConfigCallbacks: function() {
-    var cityArray = Settings.option('cityArray') || ;
+    var cityArray = Settings.option('cityArray') || [];
     var baseUrl = 'https://www.devinhoward.ca/pebblejs/aqicn/config-page.html';
     var url = baseUrl + '?cityArray=' + encodeURIComponent(JSON.stringify(cityArray));
     Settings.config(
