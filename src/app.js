@@ -9,14 +9,32 @@ var ajax = require('ajax');
 
 var MINUTE = 60 * 1000;
 
+var CITY_ARRAY_JSON = 'cityArrayJSON';
+var DEFAULT_CITY_ARRAY = [
+  'beijing',
+  'hongkong',
+  'shanghai',
+  'suzhou',
+  'xian'
+];
+
 // forward declarations... bleh.
 var MainView = {},
     Aqicn = {};
 
 var MainView = {
   card: null,
+  cities: function() {
+    var cityArray = localStorage.getItem(CITY_ARRAY_JSON);
+    if (!cityArray) {
+      localStorage.setItem(CITY_ARRAY_JSON, DEFAULT_CITY_ARRAY);
+      return DEFAULT_CITY_ARRAY;
+    } else {
+      return JSON.parse(cityArray);
+    }
+  },
   changeCity: function(add) {
-    var cities = ['beijing', 'hongkong', 'shanghai', 'suzhou', 'xian'];
+    var cities = this.cities();
     var cityIndex = cities.indexOf(Aqicn.cityname);
     if (cityIndex === -1) {
       Aqicn.cityname = cities[0];
@@ -138,7 +156,12 @@ var Aqicn = {
  */
 
 Pebble.addEventListener('showConfiguration', function(e) {
-  Pebble.openURL('https://www.devinhoward.ca/pebblejs/aqicn/config-page.html');
+  var cityArray = localStorage.getItem(CITY_ARRAY_JSON);
+  if (!cityArray) {
+    cityArray = JSON.stringify(DEFAULT_CITY_ARRAY);
+  }
+  cityArray = JSON.stringify(['beijing', 'toronto']);
+  Pebble.openURL('https://www.devinhoward.ca/pebblejs/aqicn/config-page.html?cityArray=' + encodeURIComponent(cityArray));
 });
 
 Pebble.addEventListener('webviewclosed', function(e) {
@@ -146,13 +169,8 @@ Pebble.addEventListener('webviewclosed', function(e) {
   var config_data = JSON.parse(decodeURIComponent(e.response));
   console.log('Config window returned: ', JSON.stringify(config_data));
 
-  // Prepare AppMessage payload
-  var dict = {
-    'CITY_ARRAY': config_data.cityArray.split(","),
-  };
-
   // Send settings to Pebble watchapp
-  Pebble.sendAppMessage(dict, function(){
+  Pebble.sendAppMessage(config_data, function(){
     console.log('Sent config data to Pebble');  
   }, function() {
     console.log('Failed to send config data!');
